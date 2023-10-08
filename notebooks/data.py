@@ -5,8 +5,7 @@ import ray
 from ray.data import ActorPoolStrategy
 from ray.util.scheduling_strategies import NodeAffinitySchedulingStrategy
 
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.embeddings.huggingface import HuggingFaceEmbeddings
+from llama_index.embeddings import OpenAIEmbedding, HuggingFaceEmbedding
 from llama_index.readers import HTMLTagReader
 from llama_index.vector_stores import PGVectorStore
 from llama_index.node_parser import SimpleNodeParser
@@ -35,20 +34,17 @@ def extract_sections(record):
     return [{"document": document} for document in documents]
 
 
-def get_embedding_model(model_name):
+def get_embedding_model(model_name, embed_batch_size=100):
     if model_name == "text-embedding-ada-002":
-            return OpenAIEmbeddings(
+            return OpenAIEmbedding(
                 model=model_name,
-                openai_api_base=os.environ["OPENAI_API_BASE"],
-                openai_api_key=os.environ["OPENAI_API_KEY"])
+                embed_batch_size=embed_batch_size,
+                api_key=os.environ["OPENAI_API_KEY"])
     else:
-        model_kwargs = {"device": "cuda"}
-        encode_kwargs = {"device": "cuda", "batch_size": 100}
-
-        return HuggingFaceEmbeddings(
+        return HuggingFaceEmbedding(
             model_name=model_name,
-            model_kwargs=model_kwargs,
-            encode_kwargs=encode_kwargs)
+            embed_batch_size=embed_batch_size
+        )
     
     
 class EmbedChunks:
@@ -61,7 +57,7 @@ class EmbedChunks:
         text = [node.text for node in nodes]
         
         # Embed the batch of text.
-        embeddings = self.embedding_model.embed_documents(text)
+        embeddings = self.embedding_model.get_text_embedding_batch(text)
         assert len(nodes) == len(embeddings)
 
         # Store the embedding in the LlamaIndex node.
@@ -117,7 +113,7 @@ def build_index(docs_path, embedding_model_name, chunk_size, chunk_overlap):
         EmbedChunks,
         fn_constructor_kwargs={"model_name": embedding_model_name},
         batch_size=100, 
-        num_gpus=1 if embedding_model_name!="text-embedding-ada-002" else 0,
+        num_gpus=0 if embedding_model_name!="text-embedding-ada-002" else 0,
         compute=ActorPoolStrategy(size=2))
 
     # Index data

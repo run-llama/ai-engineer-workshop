@@ -23,7 +23,7 @@ def _get_vector_store_index(
 def get_query_engine(
     llm_model_name: str = "meta-llama/Llama-2-70b-chat-hf",
     temperature: float = 0.1,
-    embedding_model_name = "thenlper/gte-base",
+    embedding_model_name = "text-embedding-ada-002",
     similarity_top_k=2
 ):
     embed_model = get_embedding_model(embedding_model_name)
@@ -40,7 +40,7 @@ def get_query_engine(
 
 
 def get_retriever(    
-    embedding_model_name = "thenlper/gte-base",
+    embedding_model_name = "text-embedding-ada-002",
     similarity_top_k=2
 ):
 
