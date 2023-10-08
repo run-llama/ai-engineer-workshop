@@ -1,0 +1,52 @@
+[
+    {
+        "question": "I\u2019m struggling a bit with Ray Data type conversions when I do map_batches. Any advice?",
+        "source": "https://docs.ray.io/en/master/data/transforming-data.html#configuring-batch-format",
+        "response": "Sure, when using the `map_batches()` function in Ray Data, you can specify the batch format by using the `batch_format` parameter. If you want to work with NumPy ndarrays, you can set `batch_format=\"numpy\"`. For example, if you have a function that increases the brightness of an image, you can use it like this:\n\n```python\nfrom typing import Dict\nimport numpy as np\nimport ray\n\ndef increase_brightness(batch: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:\n    batch[\"image\"] = np.clip(batch[\"image\"] + 4, 0, 255)\n    return batch\n\nds = (\n    ray.data.read_images(\"s3://[email\u00a0protected]/image-datasets/simple\")\n    .map_batches(increase_brightness, batch_format=\"numpy\")\n)\n```\n\nOn the other hand, if you prefer to work with pandas DataFrames, you can set `batch_format=\"pandas\"`. For instance, if you have a function that drops NA values from a DataFrame, you can use it like this:\n\n```python\nimport pandas as pd\nimport ray\n\ndef drop_nas(batch: pd.DataFrame) -> pd.DataFrame:\n    return batch.dropna()\n\nds = (\n    ray.data.read_csv(\"s3://[email\u00a0protected]/iris.csv\")\n    .map_batches(drop_nas, batch_format=\"pandas\")\n)\n```\n\nRemember, by default, Ray Data represents batches as dicts of NumPy ndarrays."
+    },
+    {
+        "question": "How does autoscaling work in a Ray Serve application?",
+        "source": "https://docs.ray.io/en/master/serve/scaling-and-resource-allocation.html#autoscaling",
+        "response": "In a Ray Serve application, autoscaling works by adjusting to traffic spikes through observing queue sizes and making scaling decisions to add or remove replicas. This is achieved by setting the autoscaling_config field in deployment options. The configuration includes parameters like min_replicas, max_replicas, initial_replicas, and target_num_ongoing_requests_per_replica. \n\nThe min_replicas and max_replicas fields define the range of replicas from which the Serve autoscaler can choose. Deployments start with initial_replicas, which is optional and defaults to min_replicas if not specified. The target_num_ongoing_requests_per_replica configuration determines how aggressively the autoscaler reacts to traffic. \n\nThe Ray Serve Autoscaler operates at the application level and sits on top of the Ray Autoscaler. It requests Ray to start a number of replica actors based on the request demand. If the Ray Autoscaler determines there aren\u2019t enough available CPUs to place these actors, it requests more Ray nodes from the underlying cloud provider. \n\nWhen Ray Serve scales down and terminates some replica actors, it tries to do so in a way that results in the most nodes having no Ray actors or tasks running on them, at which point the Ray autoscaler will remove those nodes. \n\nThere are also parameters like downscale_delay_s and upscale_delay_s that control the frequency of autoscaling work, and smoothing_factor that speeds up or slows down each autoscaling step. The metrics_interval_s parameter controls how often each replica sends metrics to the autoscaler."
+    },
+    {
+        "question": "how do I get the address of a ray node",
+        "source": "https://docs.ray.io/en/master/ray-core/miscellaneous.html#node-information",
+        "response": "You can get the address of a Ray node by accessing the 'NodeManagerAddress' field of the node's information. This field contains the PrivateIP of the node that the raylet is on."
+    },
+    {
+        "question": "Does Ray support NCCL?",
+        "source": "https://docs.ray.io/en/master/ray-more-libs/ray-collective.html",
+        "response": "Yes, Ray does support NCCL. It uses NCCL as one of the optional high-performance communication backends in its collective communication library."
+    },
+    {
+        "question": "Is Ray integrated with DeepSpeed?",
+        "source": "https://docs.ray.io/en/master/ray-air/examples/gptj_deepspeed_fine_tuning.html#fine-tuning-the-model-with-ray-air-a-name-train-a",
+        "response": "Yes, Ray is integrated with DeepSpeed. This integration provides optimization of the training process, including offloading and partitioning of optimizer and parameter states, which can decrease GPU memory usage. This is especially beneficial when dealing with large models that may not fit on smaller GPU types."
+    },
+    {
+        "question": "what will happen if I use AsyncIO's await to wait for a Ray future like `await x.remote()`",
+        "source": "https://docs.ray.io/en/master/ray-core/actors/async_api.html#objectrefs-as-asyncio-futures",
+        "response": "If you use AsyncIO's await to wait for a Ray future like `await x.remote()`, it will allow you to wait for the completion of the remote task. This is possible because ObjectRefs can be translated to asyncio.Futures. This feature enables you to integrate Ray futures into existing concurrent applications."
+    },
+    {
+        "question": "How would you compare Spark, Ray, Dask?",
+        "source": "https://docs.ray.io/en/master/data/overview.html#how-does-ray-data-compare-to-x-for-offline-inference",
+        "response": "The context only provides information on the comparison between Ray Data and Apache Spark. According to the provided information, both Ray Data and Apache Spark handle batch processing workloads. However, Ray Data uses a streaming paradigm that is more suitable for GPU workloads for deep learning inference. The context does not provide any information on Dask, so a comparison involving Dask cannot be made."
+    },
+    {
+        "question": "why would ray overload a node w/ more task that the resources allow ?",
+        "source": "https://docs.ray.io/en/master/ray-core/scheduling/resources.html#physical-resources-and-logical-resources",
+        "response": "Ray allows for overloading a node with more tasks than the resources allow because it operates on logical resources, not physical ones. This means that the resource requirements of tasks or actors do not impose limits on actual physical resource usage. It's the user's responsibility to ensure that tasks or actors do not use more resources than specified. Ray doesn't provide CPU isolation for tasks or actors, and it lets the operating system schedule and run the task. However, it does provide GPU isolation by setting the CUDA_VISIBLE_DEVICES environment variable."
+    },
+    {
+        "question": "when should I use Ray Client?",
+        "source": "https://docs.ray.io/en/master/cluster/running-applications/job-submission/ray-client.html#when-to-use-ray-client",
+        "response": "Ray Client should be used when you want to connect an interactive Python shell to a remote cluster. It is particularly useful for developing interactively in a local Python shell. However, it requires a stable connection to the remote cluster and will terminate the workload if the connection is lost for more than 30 seconds. If you have a long running workload that you want to run on your cluster, it is recommended to use Ray Jobs instead. Please note that Ray Client may not work as expected for ML workloads like Ray Tune or Ray Train."
+    },
+    {
+        "question": "how to scatter actors across the cluster?",
+        "source": "https://docs.ray.io/en/master/ray-core/scheduling/index.html#spread",
+        "response": "To scatter actors across the cluster, you can use the \"SPREAD\" scheduling strategy. This can be done by creating instances of the actor with the \"SPREAD\" option. Here is an example:\n\n```python\nactors = [SpreadActor.options(scheduling_strategy=\"SPREAD\").remote() for _ in range(10)]\n```\n\nIn this example, 10 instances of the SpreadActor are created and spread across the cluster."
+    }
+]
